@@ -10,6 +10,7 @@ __pycache__/
 
 # Testing and linting caches
 .pytest_cache/
+.test-tmp/
 .mypy_cache/
 .ruff_cache/
 .coverage
