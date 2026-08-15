@@ -13,9 +13,12 @@ tested Black-76 pricing, delta, payoff, and implied-volatility calculations.
 - Price European options on futures with Black-76.
 - Calculate delta and recover implied volatility.
 - Generate a data-quality summary and exploratory charts.
+- Calibrate diffusion and empirical jump parameters from futures returns.
+- Generate reproducible GBM and jump-diffusion paths with stress presets.
+- Run discrete Black-76 delta hedges with futures variation-margin accounting.
+- Measure P&L error, VaR, CVaR, downside deviation, turnover, and costs.
 
-Path simulation, dynamic hedging, stress scenarios, and neural benchmarks will
-be added in subsequent stages.
+Adversarial optimization and neural benchmarks will be added subsequently.
 
 ## Setup
 
@@ -45,6 +48,23 @@ python -m src.analysis.exploratory
 ```
 
 Generated files are written to `outputs/day1/` and are excluded from Git.
+
+Run the 10,000-path Day 2 benchmark:
+
+```powershell
+python -m src.experiments.day2_benchmark
+```
+
+This writes calibrated parameters, benchmark tables, sample paths, terminal P&L
+distributions, and the rebalancing/cost comparison to `outputs/day2/`.
+
+## Hedging convention
+
+The engine models European options on futures. Futures require no initial
+notional payment; gains and losses enter the cash account through variation
+margin. A positive option position means long and a negative position means
+short. Terminal risk metrics define loss as negative P&L, so positive VaR and
+CVaR values represent losses.
 
 ## Quality checks
 
