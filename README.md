@@ -24,9 +24,11 @@ costs.
   transaction costs, terminal payoff, and final hedge closure
 - Simulates 10,000 paths at a time and produces comparison tables and charts
 
-Constrained adversarial path search and a neural hedging benchmark are planned
-next. A neural path generator will remain experimental until more historical
-training data is available.
+The project also includes constrained adversarial path search. Rather than
+calling a tiny-data neural model a reliable generator, it evolves smooth return
+control points toward paths that maximize hedge loss, turnover, or transaction
+cost while enforcing explicit volatility and movement limits. A neural hedging
+benchmark is planned next.
 
 ## A result worth noticing
 
@@ -100,6 +102,26 @@ python -m src.experiments.day2_benchmark
 
 The benchmark writes calibrated parameters, metrics, sample paths, P&L
 distributions, and the rebalancing comparison to `outputs/day2/`.
+
+Run the stress and constrained adversarial benchmark:
+
+```powershell
+python -m src.experiments.day3_stress_benchmark
+```
+
+This compares normal GBM, volatility stress, crashes, rallies, and jump regimes
+across six hedge frequencies. It also searches for paths targeting hedge loss,
+turnover, transaction cost, and loss despite a near-flat terminal price. Results
+and diagnostic charts are written to `outputs/day3/`.
+
+## What “adversarial” means here
+
+An adversarial path is not allowed to take any shape it wants. Candidate return
+sequences are interpolated from 24 control points and constrained by maximum
+minute return, annualized volatility, total excursion, and terminal displacement.
+An evolutionary search keeps and mutates the candidates that are hardest for a
+specified hedge schedule. This provides a reproducible stress-testing tool while
+remaining honest about the limited amount of historical training data.
 
 ## Accounting convention
 
