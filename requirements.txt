@@ -4,3 +4,5 @@ scipy>=1.14,<2
 matplotlib>=3.9,<4
 pytest>=8.3,<9
 ruff>=0.9,<1
+torch>=2.7,<3
+streamlit>=1.45,<2

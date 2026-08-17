@@ -23,12 +23,15 @@ costs.
 - Accounts for option premium, cash interest, futures variation margin,
   transaction costs, terminal payoff, and final hedge closure
 - Simulates 10,000 paths at a time and produces comparison tables and charts
+- Trains a residual neural hedge through terminal P&L and transaction costs
+- Compares Black-76 and neural hedging on unseen normal, jump, crash, and
+  adversarial paths
+- Provides an interactive Streamlit dashboard for exploring scenarios
 
-The project also includes constrained adversarial path search. Rather than
+The project includes constrained adversarial path search. Rather than
 calling a tiny-data neural model a reliable generator, it evolves smooth return
 control points toward paths that maximize hedge loss, turnover, or transaction
-cost while enforcing explicit volatility and movement limits. A neural hedging
-benchmark is planned next.
+cost while enforcing explicit volatility and movement limits.
 
 ## A result worth noticing
 
@@ -50,16 +53,54 @@ roughly 60 hedge times performed best in this experiment; beyond that point,
 the extra turnover outweighed the reduction in discretization error. This is a
 simulation result under the stated assumptions, not a trading recommendation.
 
+## Neural hedge: where it helped and where it did not
+
+The neural policy learns a bounded adjustment around Black-76 delta. It is
+trained end to end on simulated GBM and jump-diffusion paths using terminal P&L,
+downside loss, and trading costs. Evaluation uses unseen paths and identical
+accounting for both strategies.
+
+| Held-out scenario | Black-76 RMSE | Neural RMSE | Neural change |
+|---|---:|---:|---:|
+| Normal GBM | **11.42** | 14.27 | +25.0% |
+| Jump diffusion | 70.93 | **66.39** | -6.4% |
+| Forced 5% crash | 730.19 | **646.31** | -11.5% |
+| Constrained adversarial | 127.18 | **103.89** | -18.3% |
+
+The neural hedge was more robust under model misspecification and stress, but
+plain Black-76 remained substantially better when its GBM assumptions were
+correct. This is a useful negative result: the learned robustness is not free.
+
+![Neural training and held-out benchmark](docs/assets/neural_benchmark.png)
+
+![Strategy P&L comparison](docs/assets/strategy_pnl_comparison.png)
+
 ## Project layout
+
+```mermaid
+flowchart LR
+    Data[Minute market data] --> Calibration
+    Calibration --> Paths[GBM / jumps / stress]
+    Paths --> Baseline[Black-76 hedge]
+    Paths --> Neural[Neural residual hedge]
+    Paths --> Search[Adversarial search]
+    Baseline --> Risk[P&L, VaR, CVaR, turnover]
+    Neural --> Risk
+    Search --> Risk
+    Risk --> Dashboard[Streamlit dashboard]
+```
 
 ```text
 src/
+├── adversarial/    # Constrained evolutionary path search
 ├── analysis/       # Exploratory market-data reports
+├── dashboard/      # Pure services used by the interactive app
 ├── data/           # Loading, symbol parsing, and validation
 ├── evaluation/     # P&L and tail-risk metrics
 ├── experiments/    # Reproducible benchmark entry points
 ├── hedging/        # Futures-based delta-hedging engine
 ├── models/         # Black-76 pricing and Greeks
+├── neural/         # Neural policy, causal features, training, and inference
 └── simulation/     # Calibration, GBM, jump diffusion, and stresses
 tests/              # Pricing, data, simulation, accounting, and metric tests
 data/               # Local CSV files (not committed)
@@ -114,6 +155,26 @@ across six hedge frequencies. It also searches for paths targeting hedge loss,
 turnover, transaction cost, and loss despite a near-flat terminal price. Results
 and diagnostic charts are written to `outputs/day3/`.
 
+Train and evaluate the neural hedge:
+
+```powershell
+python -m src.experiments.day4_neural_benchmark
+```
+
+The best validation checkpoint is written to `checkpoints/` and remains local.
+Training history, held-out metrics, and P&L charts are written to `outputs/day4/`.
+
+Launch the interactive dashboard:
+
+```powershell
+streamlit run app.py
+```
+
+The dashboard defaults to 1,000 paths and caches repeated simulations. It lets
+you change the generator, volatility, jumps, forced shocks, strike, hedge
+frequency, transaction costs, and seed, then inspect paths, hedge positions,
+the P&L distribution, and tail-risk metrics.
+
 ## What “adversarial” means here
 
 An adversarial path is not allowed to take any shape it wants. Candidate return
@@ -142,7 +203,8 @@ loss as negative P&L, so a positive VaR or CVaR number represents a loss.
 
 The test suite covers Black-76 identities, implied-volatility recovery, symbol
 parsing, dataset validation, simulation reproducibility, forced crashes, hedge
-accounting, transaction costs, and risk metrics.
+accounting, transaction costs, risk metrics, causal neural features, finite
+training, checkpoint restoration, and dashboard services.
 
 ```powershell
 pytest --basetemp=.test-tmp
